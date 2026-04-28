@@ -18,18 +18,7 @@ install_load <- function(pkgs) {
 # Use the function
 install_load(c("tidyverse"))
 
-# 
-# filedest <- getwd()
-# bunzip2("repdata_data_StormData.csv.bz2", remove = FALSE, destname = filedest)
-# SD <- read.csv("repdata_data_StormData.csv.bz2")
-# 
-# Names <- names(StormData)
-# StormData$Event.Type <- as.factor(StormData$Event.Type)
-# class(StormData$Event.Type)
-# class(StormData$Deaths)
-# 
-# DeathEvents <- with(StormData, aggregate(Deaths~Event.Type, FUN = 'sum' ))
-# DeathEvents100 <- DeathEvents[DeathEvents$Deaths > 100,]
+
 
 
 
@@ -85,31 +74,8 @@ StormData <- subset(StormData,
 SD <- StormData[!rowSums(StormData[, c(4,5,7,8)]) == 0,]
 
 
-"
-SD.Agg <- with(StormData, aggregate(
-	cbind(Deaths, Injuries, Prop.Dam.Cost, Crop.Dam.Cost) ~ Year, 
-	FUN = sum))
-SD.Agg$Prop.Dam.Cost <- SD.Agg$Prop.Dam.Cost / (1e9)
-SD.Agg$Crop.Dam.Cost <- SD.Agg$Crop.Dam.Cost / (1e9)
-
-SD.Agg$Tot.Dam.Cost <- SD.Agg$Prop.Dam.Cost + SD.Agg$Crop.Dam.Cost
-SD.Agg$Casualties <- SD.Agg$Deaths + SD.Agg$Injuries
 
 
-with(SD.Agg, plot(Year, Tot.Dam.Cost, type= "o", ylim = c(0, 15000)))
-with(SD.Agg, lines(Year, Prop.Dam.Cost, type = "o", col = "red", pch = 17))
-with(SD.Agg, lines(Year, Crop.Dam.Cost, type = "o", col = "green", pch = 12))
-
-
-with(SD.Agg, plot(Year, Casualties, type= "o",ylim = c(0, 15000) ))
-with(SD.Agg, lines(Year, Deaths, type = "o", col = "red", pch = 17))
-with(SD.Agg, lines(Year, Injuries, type = "o", col = "green", pch = 12))
-"
-
-
-# SD.Tornado <- SD$Event.Type[grepl("tornado", SD$Event.Type, ignore.case = TRUE)]
-# 
-# SD01 <- SD$Event.Type[grepl("Astronomical Low Tide", SD$Event.Type, ignore.case = TRUE)]
 
 A <- unique(SD$Event.Type[grepl("LIGHTNING|THUNDER|TSTM", SD$Event.Type )])
 
@@ -118,93 +84,125 @@ A <- unique(SD$Event.Type[grepl("LIGHTNING|THUNDER|TSTM", SD$Event.Type )])
 SD$Event.Type <- toupper(SD$Event.Type)
 
 
-#	Original event names unique
-EventTypes <- unique(SD$Event.Type)
-Event.Names <- unique(SD$Event.Type)
-df0 <- EventTypes
-#	48 acceptable variables as laid out in section 2.1.1 of the 
-#	Storm Data Documentation. 
-Events<- c("Astronomical Low Tide", "Avalanche", "Blizzard", "Coastal Flood",
-	"Cold/Wind Chill", "Debris Flow", "Dense Fog", "Dense Smoke", "Drought",
-	"Dust Devil", "Dust Storm", "Excessive Heat", "Extreme Cold/Wind Chill",
-	"Flash Flood", "Flood", "Frost/Freeze", "Funnel Cloud", "Freezing Fog",
-	"Hail", "Heat", "Heavy Rain", "Heavy Snow", "High Surf", "High Wind",
-	"Hurricane (Typhoon)", "Ice Storm", "Lake-Effect Snow", "Lakeshore Flood",
-	"Lightning C", "Marine Hail", "Marine High Wind", "Marine Strong Wind",
-	"Marine Thunderstorm Wind", "Rip Current", "Seiche", "Sleet", 
-	"Storm Surge/Tide", "Strong Wind", "Thunderstorm Wind", "Tornado", 
-	"Tropical Depression", "Tropical Storm", "Tsunami", "Volcanic Ash",
-	"Waterspout", "Wildfire", "Winter Storm", "Winter Weather") 
-
-EventAction <- c("Low Tide", "Avalanche", "Blizzard", "Flood",
-		 "Chill", "Flow", "Fog", "Smoke", "Drought",
-		 "Dust Devil", "Storm", "Heat", "Chill",
-		 "Flood", "Flood", "Frost", "Freeze", "Cloud", "Fog",
-		 "Hail", "Heat", "Rain", "Snow", "Surf", "Wind",
-		 "Hurricane", "Typhoon", "Storm", "Snow", "Flood",
-		 "Lightning", "Hail", "Wind", "Wind",
-		 "Wind", "Current", "Seiche", "Sleet", 
-		 "Storm", "Surge","Tide", "Strong Wind", "Thunderstorm Wind", "Tornado", 
-		 "Depression", "Storm", "Tsunami", "Ash",
-		 "Waterspout", "Wildfire", "Storm", "Weather") 
-
-
-EventDescriptor <-  c("Astronomical", "Coastal",
-		      "Cold", "Debris", "Dense", "Dense", "Drought",
-		      "Dust", "Dust", "Excessive", "Extreme",
-		      "Flash", "Funnel", "Freezing",
-		      "Heavy", "Heavy", "High", "High",
-		      "Ice", "Lake-Effect", "Lakeshore",
-		      "Lightning C", "Marine", "Marine High", "Marine Strong",
-		      "Marine Thunderstorm", "Rip", 
-		      "Strong", "Thunderstorm", 
-		      "Tropical", "Tropical", "Volcanic",
-		      "Winter", "Winter") 
-
-
-
-EventWords <- c("Astronomical", "Low", "Tide", "Avalanche", "Blizzard", "Coastal", 
-		"Flood", "Cold", "/", "Wind", "Chill", "Debris", "Flow", "Dense", 
-		"Fog", "Dense", "Smoke", "Drought", "Dust", "Devil", "Dust", 
-		"Storm", "Excessive", "Heat", "Extreme", "Cold/Wind", "Chill",
-		"Flash", "Flood", "Flood", "Frost/Freeze", "Funnel", "Cloud", 
-		"Freezing", "Fog", "Hail", "Heat", "Heavy", "Rain", "Heavy", 
-		"Snow", "High", "Surf", "High", "Wind", "Hurricane", "Typhoon", 
-		"Ice", "Storm", "Lake-Effect", "Snow", "Lakeshore", "Flood",
-		"Lightning", "C", "Marine", "Hail", "Marine", "High", "Wind", 
-		"Marine", "Strong", "Wind", "Marine", "Thunderstorm", "Wind", 
-		"Rip", "Current", "Seiche", "Sleet", "Storm", "Surge", "/", 
-		"Tide", "Strong", "Wind", "Thunderstorm", "Wind", "Tornado", 
-		"Tropical", "Depression", "Tropical", "Storm", "Tsunami", 
-		"Volcanic", "Ash", "Waterspout", "Wildfire", "Winter", "Storm", 
-		"Winter", "Weather") 
-
-
-A <- unique(SD$Event.Type[grepl("LIGHTNING", SD$Event.Type )])
-A <- unique(SD$Event.Type[grepl("LIGHTNING|THUNDER|TSTM", SD$Event.Type )])
-A <- unique(SD$Event.Type[grepl("SNOW", SD$Event.Type )])
-
-length(unique(SD$Event.Type))
-
-SD$Event.Type <- gsub(".*THUN.*|.*LIGHTNING.*|.*TSTM.*|.*LIGNTNING.*|.*LIGHTING.*|.*MICRO.*"
+SD$Event.Type <- gsub(".*THUN.*|.*LIGHTNING.*|.*TSTM.*|.*LIGNTNING.*|.*LIGHTING.*|.*MICRO.*|.*DOWNBURST.*|.*TURBULENCE.*"
 		      , "THUNDER/LIGHTNING", SD$Event.Type)
 SD$Event.Type <- gsub(".*BLIZZARD.*", "BLIZZARD", SD$Event.Type)
-SD$Event.Type <- gsub(".*SNOW.*|.*ICE.*|.*WINT.*|.*FROST.*|.*FREEZE.*", "ICE/SNOW", SD$Event.Type)
-SD$Event.Type <- gsub(".*TORNADO.*|.*WATERSPOUT.*|.*DUST.*|.*GUSTNADO.*", "TORNADO", SD$Event.Type)
+SD$Event.Type <- gsub(".*SNOW.*|.*ICE.*|.*WINT.*|.*FROST.*|.*FREEZE.*|.*ICY.*|.*GLAZE.*|.*HEAVY MIX.*|.*FREEZING SPRAY.*", 
+		      "ICE/SNOW", SD$Event.Type)
+SD$Event.Type <- gsub(".*TORNADO.*|.*WATERSPOUT.*|.*DUST.*|.*GUSTNADO.*|.*LANDSPOUT.*|.*FUNNEL.*|.*TORNDAO.*", "TORNADO", SD$Event.Type)
 SD$Event.Type <- gsub(".*HURR.*|.*TYPH.*", "HURRICANE", SD$Event.Type)
 SD$Event.Type <- gsub(".*HAIL.*", "HAIL", SD$Event.Type)
-SD$Event.Type <- gsub(".*FLOOD.*|.*MUD.*|.*SLIDE.*|.*DAM.*|.*RISING.*", "FLOODS/DEBRIS FLOW", SD$Event.Type)
-SD$Event.Type <- gsub(".*HEAT.*|.*DROUGHT.*|.*HYPER.*|.*WARM.*", "HEAT", SD$Event.Type)
-SD$Event.Type <- gsub(".*RAIN.*|.*DRIZZ.*|.*SLEET.*|.*PRECIP.*", "RAIN/SLEET", SD$Event.Type)
+SD$Event.Type <- gsub(".*FLOOD.*|.*MUD.*|.*SLIDE.*|.*DAM.*|.*RISING.*|.*EROSION.*|.*LANDSLUMP.*|.*DROWN.*|.*HIGH WATER.*"
+		      , "FLOODS/DEBRIS FLOW", SD$Event.Type)
+SD$Event.Type <- gsub(".*HEAT.*|.*DROUGHT.*|.*HYPER.*|.*WARM.*|.*DENSE SMOKE.*", "HEAT", SD$Event.Type)
+SD$Event.Type <- gsub(".*RAIN.*|.*DRIZZ.*|.*SLEET.*|.*PRECIP.*|.*SHOWER.*|.*COOL AND WET.*|.*WETNESS.*", 
+		      "RAIN/SLEET", SD$Event.Type)
 SD$Event.Type <- gsub(".*FIRE.*", "WILDFIRE", SD$Event.Type)
 SD$Event.Type <- gsub(".*FOG.*", "FOG", SD$Event.Type)
-SD$Event.Type <- gsub(".*COLD.*|.*WIND.*|.*HYPO.*", "COLD/WIND", SD$Event.Type)
-SD$Event.Type <- gsub(".*SURF.*|.*TIDE.*|.*COAST.*|.*WAVE.*", "COASTAL/SURF/TIDE", SD$Event.Type)
+SD$Event.Type <- gsub(".*COLD.*|.*WIND.*|.*HYPO.*|.*LOW TEMP.*", "COLD/WIND", SD$Event.Type)
+SD$Event.Type <- gsub(".*SURF.*|.*TIDE.*|.*COAST.*|.*WAVE.*|.*RIP CUR.*", "COASTAL/SURF/TIDE", SD$Event.Type)
 SD$Event.Type <- gsub(".*TROPIC.*", "TROPICAL STORMS", SD$Event.Type)
-SD$Event.Type <- gsub(".*OTHER.*|.*?.*|.*GLAZE.*", "OTHER", SD$Event.Type)
+SD$Event.Type <- gsub(".*OTHER.*|.*\\?.*|.*APACHE.*|.*ACCIDENT.*|.*URBAN.*|.*MISHAP.*|^HIGH$", "OTHER", SD$Event.Type)
+SD$Event.Type <- gsub(".*SEA.*|.*SWELL.*|.*STORM SURGE.*", "MARINE/SEAS", SD$Event.Type)
+SD$Event.Type <- gsub(".*AVALAN.*", "AVALANCHE", SD$Event.Type)
 
 
 
+thunder_lightning_var <- unique(Event.Names[grepl(".*THUN.*|.*LIGHTNING.*|.*TSTM.*|.*LIGNTNING.*|
+			      .*LIGHTING.*|.*MICRO.*|.*DOWNBURST.*", Event.Names )])
+blizzard_var <- unique(Event.Names[grepl(".*BLIZZARD.*", Event.Names )])
+ice_snow_var <- unique(Event.Names[grepl(".*SNOW.*|.*ICE.*|.*WINT.*|.*FROST.*|.*FREEZE.*|.*ICY.*|.*GLAZE.*", Event.Names )])
+tornado_var <- unique(Event.Names[grepl(".*TORNADO.*|.*WATERSPOUT.*|.*DUST.*|.*GUSTNADO.*|.*LANDSPOUT.*", Event.Names )])
+hurricane_var <- unique(Event.Names[grepl(".*HURR.*|.*TYPH.*", Event.Names )])
+hail_var <- unique(Event.Names[grepl(".*HAIL.*", Event.Names )])
+floods_debrisflow_var <- unique(Event.Names[grepl(".*FLOOD.*|.*MUD.*|.*SLIDE.*|.*DAM.*|.*RISING.*", Event.Names )])
+heat_var <- unique(Event.Names[grepl(".*HEAT.*|.*DROUGHT.*|.*HYPER.*|.*WARM.*", Event.Names )])
+rain_sleet_var <- unique(Event.Names[grepl(".*RAIN.*|.*DRIZZ.*|.*SLEET.*|.*PRECIP.*|.*SHOWER.*", Event.Names )])
+wildfire_var <- unique(Event.Names[grepl(".*FIRE.*", Event.Names )])
+fog_var <- unique(Event.Names[grepl(".*FOG.*", Event.Names )])
+cold_wind_var <- unique(Event.Names[grepl(".*COLD.*|.*WIND.*|.*HYPO.*", Event.Names )])
+coastal_surf_tide_var <- unique(Event.Names[grepl(".*SURF.*|.*TIDE.*|.*COAST.*|.*WAVE.*", Event.Names )])
+tropicalstorms_var <- unique(Event.Names[grepl(".*TROPIC.*", Event.Names )])
+other_var <- unique(Event.Names[grepl(".*OTHER.*|.*\\?.*|.*APACHE.*|.*ACCIDENT.*|.*URBAN.*|.*MISHAP.*", Event.Names )])
+marine_seas_var <- unique(Event.Names[grepl(".*SEA.*|.*SWELL.*|.*STORM SURGE.*", Event.Names )])
+
+
+SD$Casualties <- SD$Deaths + SD$Injuries
+SD$Dam.Cost <- (SD$Prop.Dam.Cost + SD$Crop.Dam.Cost) / (1e12)
+
+SD.Agg.Cas <- aggregate(SD$Casualties~SD$Event.Type, FUN = sum)
+names(SD.Agg.Cas) <- c("Event", "Casualties")
+SD.Agg.Dam <- aggregate(SD$Dam.Cost~SD$Event.Type, FUN = sum)
+names(SD.Agg.Dam) <- c("Event", "Damage.Cost")
+
+SD.Agg.DI <- aggregate(cbind(SD$Deaths,SD$Injuries)~SD$Event.Type, FUN = sum)
+names(SD.Agg.DI) <- c("Event", "Deaths", "Injuries")
+
+SD.Agg.PC <- aggregate(cbind(SD$Prop.Dam.Cost,SD$Crop.Dam.Cost)~SD$Event.Type, FUN = sum)
+names(SD.Agg.PC) <- c("Event", "Prop.Dam", "Crop.Dam")
+
+
+
+SD.Agg.byCas <- pivot_longer(data = SD.Agg.DI,cols = c("Deaths", "Injuries") , names_to = "Casualty.Type", values_to = "Casualties")
+
+SD.Agg.byCas$Casualty.Type <- factor(SD.Agg.byCas$Casualty.Type, levels = c("Injuries", "Deaths"))
+
+
+f <- ggplot(SD.Agg.Cas, aes(x = reorder(Event, -Casualties), y = Casualties, fill = "red"))+
+	geom_bar(stat = "identity")+
+	xlab("Weather Event")+
+	ylab("Casualties")+
+	theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 6), legend.position = "none")+
+	labs(title = "Casualties by Weather Event")
+
+
+f
+
+h <- ggplot(SD.Agg.Dam, aes(x = reorder(Event, -Damage.Cost), y = Damage.Cost, fill = "red"))+
+	geom_bar(stat = "identity")+
+	xlab("Weather Event")+
+	ylab("Cost of Damage (trillions of dollars)")+
+	theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 6), legend.position = "none")+
+	labs(title = "Economic Impact by Weather Event")
+
+h
+
+
+k <- ggplot(SD.Agg.byCas, aes(x = reorder(Event, -Casualties, sum), y = Casualties, fill = Casualty.Type))+
+	geom_bar(stat = "identity")+
+	xlab("Weather Event")+
+	ylab("Casualties")+
+	theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 6), legend.position = "bottom", legend.title = element_blank())+
+	labs(title = "Casualties by Weather Event")
+
+
+k
+
+
+
+# A <- unique(SD$Event.Type[grepl("LIGHTNING", SD$Event.Type )])
+# length(unique(SD$Event.Type))
+
+
+
+# class(other_var)
+# my_list <- list(other_var, tropicalstorms_var, coastal_surf_tide_var, cold_wind_var, fog_var, wildfire_var, rain_sleet_var,
+# 		heat_var, floods_debrisflow_var, hail_var, hurricane_var, tornado_var, ice_snow_var, blizzard_var, 
+# 		thunder_lightning_var)
+# 
+# 
+# common_elem <- purrr::reduce(my_list, intersect)
+# 
+# x <- 0
+# y <- 0
+# 
+# for(i in my_list){
+# 	x <- length(i)
+# 	y <- y + x
+# 	
+# }
+# 
+# intersect(thunder_lightning_var, cold_wind_var)
 
 
 # SD$Event.Type <- gsub(".*THUNDERSTORMS.*", "THUNDERSTORM", SD$Event.Type)
@@ -275,3 +273,121 @@ SD$Event.Type <- gsub(".*OTHER.*|.*?.*|.*GLAZE.*", "OTHER", SD$Event.Type)
 # 
 
 #table(StormDataOriginal$PROPDMGEXP)
+
+
+
+# 
+# filedest <- getwd()
+# bunzip2("repdata_data_StormData.csv.bz2", remove = FALSE, destname = filedest)
+# SD <- read.csv("repdata_data_StormData.csv.bz2")
+# 
+# Names <- names(StormData)
+# StormData$Event.Type <- as.factor(StormData$Event.Type)
+# class(StormData$Event.Type)
+# class(StormData$Deaths)
+# 
+# DeathEvents <- with(StormData, aggregate(Deaths~Event.Type, FUN = 'sum' ))
+# DeathEvents100 <- DeathEvents[DeathEvents$Deaths > 100,]
+
+
+# 
+# #	Original event names unique
+# EventTypes <- unique(SD$Event.Type)
+# Event.Names <- unique(SD$Event.Type)
+# df0 <- EventTypes
+# #	48 acceptable variables as laid out in section 2.1.1 of the 
+# #	Storm Data Documentation. 
+# Events<- c("Astronomical Low Tide", "Avalanche", "Blizzard", "Coastal Flood",
+# 	   "Cold/Wind Chill", "Debris Flow", "Dense Fog", "Dense Smoke", "Drought",
+# 	   "Dust Devil", "Dust Storm", "Excessive Heat", "Extreme Cold/Wind Chill",
+# 	   "Flash Flood", "Flood", "Frost/Freeze", "Funnel Cloud", "Freezing Fog",
+# 	   "Hail", "Heat", "Heavy Rain", "Heavy Snow", "High Surf", "High Wind",
+# 	   "Hurricane (Typhoon)", "Ice Storm", "Lake-Effect Snow", "Lakeshore Flood",
+# 	   "Lightning C", "Marine Hail", "Marine High Wind", "Marine Strong Wind",
+# 	   "Marine Thunderstorm Wind", "Rip Current", "Seiche", "Sleet", 
+# 	   "Storm Surge/Tide", "Strong Wind", "Thunderstorm Wind", "Tornado", 
+# 	   "Tropical Depression", "Tropical Storm", "Tsunami", "Volcanic Ash",
+# 	   "Waterspout", "Wildfire", "Winter Storm", "Winter Weather") 
+# 
+# EventAction <- c("Low Tide", "Avalanche", "Blizzard", "Flood",
+# 		 "Chill", "Flow", "Fog", "Smoke", "Drought",
+# 		 "Dust Devil", "Storm", "Heat", "Chill",
+# 		 "Flood", "Flood", "Frost", "Freeze", "Cloud", "Fog",
+# 		 "Hail", "Heat", "Rain", "Snow", "Surf", "Wind",
+# 		 "Hurricane", "Typhoon", "Storm", "Snow", "Flood",
+# 		 "Lightning", "Hail", "Wind", "Wind",
+# 		 "Wind", "Current", "Seiche", "Sleet", 
+# 		 "Storm", "Surge","Tide", "Strong Wind", "Thunderstorm Wind", "Tornado", 
+# 		 "Depression", "Storm", "Tsunami", "Ash",
+# 		 "Waterspout", "Wildfire", "Storm", "Weather") 
+# 
+# 
+# EventDescriptor <-  c("Astronomical", "Coastal",
+# 		      "Cold", "Debris", "Dense", "Dense", "Drought",
+# 		      "Dust", "Dust", "Excessive", "Extreme",
+# 		      "Flash", "Funnel", "Freezing",
+# 		      "Heavy", "Heavy", "High", "High",
+# 		      "Ice", "Lake-Effect", "Lakeshore",
+# 		      "Lightning C", "Marine", "Marine High", "Marine Strong",
+# 		      "Marine Thunderstorm", "Rip", 
+# 		      "Strong", "Thunderstorm", 
+# 		      "Tropical", "Tropical", "Volcanic",
+# 		      "Winter", "Winter") 
+# 
+# 
+# 
+# EventWords <- c("Astronomical", "Low", "Tide", "Avalanche", "Blizzard", "Coastal", 
+# 		"Flood", "Cold", "/", "Wind", "Chill", "Debris", "Flow", "Dense", 
+# 		"Fog", "Dense", "Smoke", "Drought", "Dust", "Devil", "Dust", 
+# 		"Storm", "Excessive", "Heat", "Extreme", "Cold/Wind", "Chill",
+# 		"Flash", "Flood", "Flood", "Frost/Freeze", "Funnel", "Cloud", 
+# 		"Freezing", "Fog", "Hail", "Heat", "Heavy", "Rain", "Heavy", 
+# 		"Snow", "High", "Surf", "High", "Wind", "Hurricane", "Typhoon", 
+# 		"Ice", "Storm", "Lake-Effect", "Snow", "Lakeshore", "Flood",
+# 		"Lightning", "C", "Marine", "Hail", "Marine", "High", "Wind", 
+# 		"Marine", "Strong", "Wind", "Marine", "Thunderstorm", "Wind", 
+# 		"Rip", "Current", "Seiche", "Sleet", "Storm", "Surge", "/", 
+# 		"Tide", "Strong", "Wind", "Thunderstorm", "Wind", "Tornado", 
+# 		"Tropical", "Depression", "Tropical", "Storm", "Tsunami", 
+# 		"Volcanic", "Ash", "Waterspout", "Wildfire", "Winter", "Storm", 
+# 		"Winter", "Weather") 
+# 
+
+
+
+# SD.Agg <- with(StormData, aggregate(
+# 	cbind(Deaths, Injuries, Prop.Dam.Cost, Crop.Dam.Cost) ~ Year, 
+# 	FUN = sum))
+# SD.Agg$Prop.Dam.Cost <- SD.Agg$Prop.Dam.Cost / (1e9)
+# SD.Agg$Crop.Dam.Cost <- SD.Agg$Crop.Dam.Cost / (1e9)
+# 
+# SD.Agg$Tot.Dam.Cost <- SD.Agg$Prop.Dam.Cost + SD.Agg$Crop.Dam.Cost
+# SD.Agg$Casualties <- SD.Agg$Deaths + SD.Agg$Injuries
+# 
+# 
+# with(SD.Agg, plot(Year, Tot.Dam.Cost, type= "o", ylim = c(0, 15000)))
+# with(SD.Agg, lines(Year, Prop.Dam.Cost, type = "o", col = "red", pch = 17))
+# with(SD.Agg, lines(Year, Crop.Dam.Cost, type = "o", col = "green", pch = 12))
+# 
+# 
+# with(SD.Agg, plot(Year, Casualties, type= "o",ylim = c(0, 15000) ))
+# with(SD.Agg, lines(Year, Deaths, type = "o", col = "red", pch = 17))
+# with(SD.Agg, lines(Year, Injuries, type = "o", col = "green", pch = 12))
+
+
+
+# SD.Tornado <- SD$Event.Type[grepl("tornado", SD$Event.Type, ignore.case = TRUE)]
+# 
+# SD01 <- SD$Event.Type[grepl("Astronomical Low Tide", SD$Event.Type, ignore.case = TRUE)]
+
+
+
+
+
+
+
+
+
+
+
+
