@@ -111,9 +111,11 @@ with(SD.Agg, lines(Year, Injuries, type = "o", col = "green", pch = 12))
 # 
 # SD01 <- SD$Event.Type[grepl("Astronomical Low Tide", SD$Event.Type, ignore.case = TRUE)]
 
+A <- unique(SD$Event.Type[grepl("LIGHTNING|THUNDER|TSTM", SD$Event.Type )])
 
 
 
+SD$Event.Type <- toupper(SD$Event.Type)
 
 
 #	Original event names unique
@@ -178,77 +180,98 @@ EventWords <- c("Astronomical", "Low", "Tide", "Avalanche", "Blizzard", "Coastal
 		"Winter", "Weather") 
 
 
-
-
-SD$Event.Type <- toupper(SD$Event.Type)
+A <- unique(SD$Event.Type[grepl("LIGHTNING", SD$Event.Type )])
+A <- unique(SD$Event.Type[grepl("LIGHTNING|THUNDER|TSTM", SD$Event.Type )])
+A <- unique(SD$Event.Type[grepl("SNOW", SD$Event.Type )])
 
 length(unique(SD$Event.Type))
 
-SD$Event.Type <- gsub(".*THUNDERSTORMS.*", "THUNDERSTORM", SD$Event.Type)
-SD$Event.Type <- gsub(".*WINDS.*", "WIND", SD$Event.Type)
-SD$Event.Type <- gsub(".*^HAIL.*", "HAIL", SD$Event.Type)
-SD$Event.Type <- gsub(".*^TORNADO.*", "TORNADO", SD$Event.Type)
-SD$Event.Type <- gsub(".*^THUNDERSTORM WIND.*", "THUNDERSTORM WIND", SD$Event.Type)
-SD$Event.Type <- gsub(".*^TSTM WIND.*", "THUNDERSTORM WIND", SD$Event.Type)
-SD$Event.Type <- gsub(".*^ TSTM WIND.*", "THUNDERSTORM WIND", SD$Event.Type)
-SD$Event.Type <- gsub(".*^THUNDERSTORMWINDS.*", "THUNDERSTORM WIND", SD$Event.Type)
-SD$Event.Type <- gsub(".*^TSTMW.*", "THUNDERSTORM WIND", SD$Event.Type)
-SD$Event.Type <- gsub(".*^HURRICANE.*", "Hurricane (Typhoon)", SD$Event.Type)
-SD$Event.Type <- gsub(".*^TYPHOON.*", "Hurricane (Typhoon)", SD$Event.Type)
-SD$Event.Type <- gsub(".*^SNOW.*", "HEAVY SNOW", SD$Event.Type)
-SD$Event.Type <- gsub(".*^ICE STORM.*", "ICE STORM", SD$Event.Type)
-SD$Event.Type <- gsub(".*^FLASH FLOOD.*", "FLASH FLOOD", SD$Event.Type)
-SD$Event.Type <- gsub(".*^GUSTY WIND.*", "STRONG WIND", SD$Event.Type)
-SD$Event.Type <- gsub(".*^HIGH WIND.*", "HIGH WIND", SD$Event.Type)
-SD$Event.Type <- gsub(".*^HIGH  WIND.*", "HIGH WIND", SD$Event.Type)
-SD$Event.Type <- gsub(".*^HEAVY SNOW.*", "HEAVY SNOW", SD$Event.Type)
-SD$Event.Type <- gsub(".*^FLOOD.*", "FLOOD", SD$Event.Type)
-SD$Event.Type <- gsub(".*DROUGHT.*", "DROUGHT", SD$Event.Type)
-SD$Event.Type <- gsub(".*^LIGHTNING.*", "LIGHTNING C", SD$Event.Type)
+SD$Event.Type <- gsub(".*THUN.*|.*LIGHTNING.*|.*TSTM.*|.*LIGNTNING.*|.*LIGHTING.*|.*MICRO.*"
+		      , "THUNDER/LIGHTNING", SD$Event.Type)
+SD$Event.Type <- gsub(".*BLIZZARD.*", "BLIZZARD", SD$Event.Type)
+SD$Event.Type <- gsub(".*SNOW.*|.*ICE.*|.*WINT.*|.*FROST.*|.*FREEZE.*", "ICE/SNOW", SD$Event.Type)
+SD$Event.Type <- gsub(".*TORNADO.*|.*WATERSPOUT.*|.*DUST.*|.*GUSTNADO.*", "TORNADO", SD$Event.Type)
+SD$Event.Type <- gsub(".*HURR.*|.*TYPH.*", "HURRICANE", SD$Event.Type)
+SD$Event.Type <- gsub(".*HAIL.*", "HAIL", SD$Event.Type)
+SD$Event.Type <- gsub(".*FLOOD.*|.*MUD.*|.*SLIDE.*|.*DAM.*|.*RISING.*", "FLOODS/DEBRIS FLOW", SD$Event.Type)
+SD$Event.Type <- gsub(".*HEAT.*|.*DROUGHT.*|.*HYPER.*|.*WARM.*", "HEAT", SD$Event.Type)
+SD$Event.Type <- gsub(".*RAIN.*|.*DRIZZ.*|.*SLEET.*|.*PRECIP.*", "RAIN/SLEET", SD$Event.Type)
 SD$Event.Type <- gsub(".*FIRE.*", "WILDFIRE", SD$Event.Type)
-SD$Event.Type <- gsub(".*TROPICAL STORM.*", "TROPICAL STORM", SD$Event.Type)
-SD$Event.Type <- gsub(".*^WATERSPOUT.*", "WATERSPOUT", SD$Event.Type)
-SD$Event.Type <- gsub(".*MUDSLIDE.*|.*MUD SLIDE.*|.*MUD SLIDES.*|.*ROCK SLIDE.*|
-		      .*FLOODING/EROSION.*|.*LANDSLIDES.*|.*EROSION.*", "DEBRIS FLOW", SD$Event.Type)
-SD$Event.Type <- gsub(".*DUST.*", "DUST DEVIL", SD$Event.Type)
-SD$Event.Type <- gsub(".*HEAT.*", "HEAT", SD$Event.Type)
-SD$Event.Type <- gsub(".*COASTAL FLOOD.*", "COASTAL FLOOD", SD$Event.Type)
-SD$Event.Type <- gsub(".*^HEAVY RAIN.*", "HEAVY RAIN", SD$Event.Type)
-SD$Event.Type <- gsub(".*^RIP CURRENT.*", "RIP CURRENT", SD$Event.Type)
-SD$Event.Type <- gsub(".*SURF.*", "HIGH SURF", SD$Event.Type)
-SD$Event.Type <- gsub(".*SNOW.*", "SNOW", SD$Event.Type)
-
-
-WordTable <- table(EventWords)
-
-WT <- as.data.frame(WordTable)
-
-WT1 <- WT[WT$Freq == 1, ]
-
-df <- data.frame()
-df_list <- list()
-
-for(words in Events) {
-	#print(words)
-	
-	df_list[[words]] <- data.frame(EventTypes[grepl(words, EventTypes, ignore.case = TRUE)])
-	
-	
-	EventTypes <- EventTypes[grep(words, EventTypes, ignore.case = TRUE, invert = TRUE)]
-	
-
-	
-	}
-
-
-
-
-UniqueEW <- unique(EventWords)
+SD$Event.Type <- gsub(".*FOG.*", "FOG", SD$Event.Type)
+SD$Event.Type <- gsub(".*COLD.*|.*WIND.*|.*HYPO.*", "COLD/WIND", SD$Event.Type)
+SD$Event.Type <- gsub(".*SURF.*|.*TIDE.*|.*COAST.*|.*WAVE.*", "COASTAL/SURF/TIDE", SD$Event.Type)
+SD$Event.Type <- gsub(".*TROPIC.*", "TROPICAL STORMS", SD$Event.Type)
+SD$Event.Type <- gsub(".*OTHER.*|.*?.*|.*GLAZE.*", "OTHER", SD$Event.Type)
 
 
 
 
 
-
+# SD$Event.Type <- gsub(".*THUNDERSTORMS.*", "THUNDERSTORM", SD$Event.Type)
+# SD$Event.Type <- gsub(".*WINDS.*", "WIND", SD$Event.Type)
+# SD$Event.Type <- gsub(".*^HAIL.*", "HAIL", SD$Event.Type)
+# SD$Event.Type <- gsub(".*^TORNADO.*", "TORNADO", SD$Event.Type)
+# SD$Event.Type <- gsub(".*^THUNDERSTORM WIND.*", "THUNDERSTORM WIND", SD$Event.Type)
+# SD$Event.Type <- gsub(".*^TSTM WIND.*", "THUNDERSTORM WIND", SD$Event.Type)
+# SD$Event.Type <- gsub(".*^ TSTM WIND.*", "THUNDERSTORM WIND", SD$Event.Type)
+# SD$Event.Type <- gsub(".*^THUNDERSTORMWINDS.*", "THUNDERSTORM WIND", SD$Event.Type)
+# SD$Event.Type <- gsub(".*^TSTMW.*", "THUNDERSTORM WIND", SD$Event.Type)
+# SD$Event.Type <- gsub(".*^HURRICANE.*", "Hurricane (Typhoon)", SD$Event.Type)
+# SD$Event.Type <- gsub(".*^TYPHOON.*", "Hurricane (Typhoon)", SD$Event.Type)
+# SD$Event.Type <- gsub(".*^SNOW.*", "HEAVY SNOW", SD$Event.Type)
+# SD$Event.Type <- gsub(".*^ICE STORM.*", "ICE STORM", SD$Event.Type)
+# SD$Event.Type <- gsub(".*^FLASH FLOOD.*", "FLASH FLOOD", SD$Event.Type)
+# SD$Event.Type <- gsub(".*^GUSTY WIND.*", "STRONG WIND", SD$Event.Type)
+# SD$Event.Type <- gsub(".*^HIGH WIND.*", "HIGH WIND", SD$Event.Type)
+# SD$Event.Type <- gsub(".*^HIGH  WIND.*", "HIGH WIND", SD$Event.Type)
+# SD$Event.Type <- gsub(".*^HEAVY SNOW.*", "HEAVY SNOW", SD$Event.Type)
+# SD$Event.Type <- gsub(".*^FLOOD.*", "FLOOD", SD$Event.Type)
+# SD$Event.Type <- gsub(".*DROUGHT.*", "DROUGHT", SD$Event.Type)
+# SD$Event.Type <- gsub(".*^LIGHTNING.*", "LIGHTNING C", SD$Event.Type)
+# SD$Event.Type <- gsub(".*FIRE.*", "WILDFIRE", SD$Event.Type)
+# SD$Event.Type <- gsub(".*TROPICAL STORM.*", "TROPICAL STORM", SD$Event.Type)
+# SD$Event.Type <- gsub(".*^WATERSPOUT.*", "WATERSPOUT", SD$Event.Type)
+# SD$Event.Type <- gsub(".*MUDSLIDE.*|.*MUD SLIDE.*|.*MUD SLIDES.*|.*ROCK SLIDE.*|
+# 		      .*FLOODING/EROSION.*|.*LANDSLIDES.*|.*EROSION.*", "DEBRIS FLOW", SD$Event.Type)
+# SD$Event.Type <- gsub(".*DUST.*", "DUST DEVIL", SD$Event.Type)
+# SD$Event.Type <- gsub(".*HEAT.*", "HEAT", SD$Event.Type)
+# SD$Event.Type <- gsub(".*COASTAL FLOOD.*", "COASTAL FLOOD", SD$Event.Type)
+# SD$Event.Type <- gsub(".*^HEAVY RAIN.*", "HEAVY RAIN", SD$Event.Type)
+# SD$Event.Type <- gsub(".*^RIP CURRENT.*", "RIP CURRENT", SD$Event.Type)
+# SD$Event.Type <- gsub(".*SURF.*", "HIGH SURF", SD$Event.Type)
+# SD$Event.Type <- gsub(".*SNOW.*", "SNOW", SD$Event.Type)
+# 
+# 
+# WordTable <- table(EventWords)
+# 
+# WT <- as.data.frame(WordTable)
+# 
+# WT1 <- WT[WT$Freq == 1, ]
+# 
+# df <- data.frame()
+# df_list <- list()
+# 
+# for(words in Events) {
+# 	#print(words)
+# 	
+# 	df_list[[words]] <- data.frame(EventTypes[grepl(words, EventTypes, ignore.case = TRUE)])
+# 	
+# 	
+# 	EventTypes <- EventTypes[grep(words, EventTypes, ignore.case = TRUE, invert = TRUE)]
+# 	
+# 
+# 	
+# 	}
+# 
+# 
+# 
+# 
+# UniqueEW <- unique(EventWords)
+# 
+# 
+# 
+# 
+# 
+# 
 
 #table(StormDataOriginal$PROPDMGEXP)
