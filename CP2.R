@@ -16,12 +16,12 @@ install_load <- function(pkgs) {
 }
 
 # Use the function
-install_load(c("tidyverse", "scales"))
+install_load(c("tidyverse", "scales","tidytext"))
 
 
 
 
-
+#	Read in dataset, select columns to read, and rename variables.
 StormDataOriginal <- data.table::fread("repdata_data_StormData.csv.bz2", 
 				       select = c(2,7,8,23,24,25,26,27,28))
 names_vect <- c("Date", "State", "Event.Type", "Deaths", 
@@ -31,18 +31,22 @@ names_vect <- c("Date", "State", "Event.Type", "Deaths",
 StormData <- StormDataOriginal
 colnames(StormData) <- names_vect
 
+
+#	Convert dates to date format and add a column for the year.
+#	Subset the dataset for years after 1992.
 StormData$Date <- as.Date(StormData$Date, format = "%m/%d/%Y")
 StormData$Year <- with(StormData, format(Date, "%Y"))
 StormData$Year <- as.numeric(StormData$Year)
-
 StormData <- StormData[StormData$Year >= 1993]
 
-
+#	Create list of unique exponent values and corresponding numerical values.
 Dam.Exponent <- union(StormData$Prop.Dam.Exponent,StormData$Crop.Dam.Exponent)
 
 Dam.Values <- c( 1e3, 1e6, 1, 1e9, 1e6, 1, 1, 1e5, 
 		      1e6, 1, 1e4, 1e2, 1e3, 1e2, 1e7, 
 		      1e2, 1, 10, 1e8, 1e3)
+
+#	Create relational table to change the exponent symbol to its numerical meaning
 Dam.Multiplier <- cbind(Dam.Exponent, Dam.Values)
 
 StormData <- left_join(StormData, Dam.Multiplier, 
@@ -56,15 +60,18 @@ colnames(StormData)[12] <- "Crop.Dam.Values"
 StormData$Prop.Dam.Values <- as.numeric(StormData$Prop.Dam.Values)
 StormData$Crop.Dam.Values <- as.numeric(StormData$Crop.Dam.Values)
 
+#	Multiply the exponent value by the coefficient.  
 StormData$Prop.Dam.Cost <- StormData$Prop.Dam.Significand * 
 			StormData$Prop.Dam.Values
-
 StormData$Crop.Dam.Cost <- StormData$Crop.Dam.Significand * 
 	StormData$Crop.Dam.Values
 
+
+#	Convert economic damages to trillions of dollars.
 StormData$Prop.Dam.Cost <- StormData$Prop.Dam.Cost / (1e12)
 StormData$Crop.Dam.Cost <- StormData$Crop.Dam.Cost / (1e12)
 
+#	Remove obsolete variables.
 StormData <- subset(StormData, 
 		    select = -c( Prop.Dam.Significand, 
 				 Prop.Dam.Exponent,
@@ -73,19 +80,16 @@ StormData <- subset(StormData,
 				 Prop.Dam.Values,
 				 Crop.Dam.Values))
 
+#	Subset only rows with some form of impact.  If any of the impact variables
+#	(Deaths, Injuries, Prop.Dam.Cost, Crop.Dam.Cost) are non zero they are kept. 
 SD <- StormData[!rowSums(StormData[, c(4,5,7,8)]) == 0,]
 
-
-
-
-
-#A <- unique(SD$Event.Type[grepl("LIGHTNING|THUNDER|TSTM", SD$Event.Type )])
-
-
-
+#	Make all Events uppercase to avoid distinction by case.
 SD$Event.Type <- toupper(SD$Event.Type)
 
 
+
+#	Group all Events by meaning to reduce buckets and fix misspellings. 
 SD$Event.Type <- gsub(".*THUN.*|.*LIGHTNING.*|.*TSTM.*|.*LIGNTNING.*|.*LIGHTING.*|.*MICRO.*|.*DOWNBURST.*|.*TURBULENCE.*"
 		      , "THUNDER/LIGHTNING", SD$Event.Type)
 SD$Event.Type <- gsub(".*BLIZZARD.*", "BLIZZARD", SD$Event.Type)
@@ -108,40 +112,51 @@ SD$Event.Type <- gsub(".*OTHER.*|.*\\?.*|.*APACHE.*|.*ACCIDENT.*|.*URBAN.*|.*MIS
 SD$Event.Type <- gsub(".*SEA.*|.*SWELL.*|.*STORM SURGE.*", "MARINE/SEAS", SD$Event.Type)
 SD$Event.Type <- gsub(".*AVALAN.*", "AVALANCHE", SD$Event.Type)
 
-(unique(SD$Event.Type))
 
-
-
+#	Combine Deaths and Injuries to one variable called Casualties
 SD$Casualties <- SD$Deaths + SD$Injuries
+#	Combine Property Damage and Crop Damage to give Total Damage.
 SD$Dam.Cost <- (SD$Prop.Dam.Cost + SD$Crop.Dam.Cost)
 
-SD.Agg.Cas <- aggregate(SD$Casualties~SD$Event.Type, FUN = sum)
-names(SD.Agg.Cas) <- c("Event", "Casualties")
-SD.Agg.Dam <- aggregate(SD$Dam.Cost~SD$Event.Type, FUN = sum)
-names(SD.Agg.Dam) <- c("Event", "Damage.Cost")
+# #	Aggregate Casualties by Event Type. Rename new columns.
+# SD.Agg.Cas <- aggregate(SD$Casualties~SD$Event.Type, FUN = sum)
+# names(SD.Agg.Cas) <- c("Event", "Casualties")
+# 
+# #	Aggregate Damages by Event Type. Rename new columns.
+# SD.Agg.Dam <- aggregate(SD$Dam.Cost~SD$Event.Type, FUN = sum)
+# names(SD.Agg.Dam) <- c("Event", "Damage.Cost")
 
 
 
-
+#	Aggregate Deaths and Injuries by Event Type. Rename new columns.
+#	Create variable summing the aggregated Deaths and Injuries.
+#	Take top 10 events with regard to Casualties (Deaths + Injuries).
 SD.Agg.DI <- aggregate(cbind(SD$Deaths,SD$Injuries)~SD$Event.Type, FUN = sum)
 names(SD.Agg.DI) <- c("Event", "Deaths", "Injuries")
 SD.Agg.DI$Cas <- SD.Agg.DI$Deaths + SD.Agg.DI$Injuries
 SD.Agg.DI <- slice_max(.data = SD.Agg.DI, order_by = SD.Agg.DI$Cas, n = 10)
 
 
-
+#	Aggregate Property and Crop damages by Event Type. Rename new columns.
+#	Create variable summing the aggregated Property and Crop damages.
+#	Take top 10 events with regard to Total damage (Property damage + Crop damage).
 SD.Agg.PC <- aggregate(cbind(SD$Prop.Dam.Cost,SD$Crop.Dam.Cost)~SD$Event.Type, FUN = sum)
 names(SD.Agg.PC) <- c("Event", "Prop.Dam", "Crop.Dam")
 SD.Agg.PC$Dam.Cost <- SD.Agg.PC$Crop.Dam + SD.Agg.PC$Prop.Dam
 SD.Agg.PC <- slice_max(.data = SD.Agg.PC, order_by = SD.Agg.PC$Dam.Cost, n = 10)
 
 
+
+#	Tidy the data by taking the two variables Deaths and Injuries and combining 
+#	them into one variable and then making the new variable a factor.
 SD.Agg.byCas <- pivot_longer(data = SD.Agg.DI,cols = c("Deaths", "Injuries"), 
 			     names_to = "Casualty.Type", values_to = "Casualties")
 
 SD.Agg.byCas$Casualty.Type <- factor(SD.Agg.byCas$Casualty.Type, 
 				     levels = c("Injuries", "Deaths"))
 
+#	Tidy the data by taking the two variables Property Damage and Crop Damage
+#	and combining them into one variable and then making the new variable a factor.
 SD.Agg.byDam <- pivot_longer(data = SD.Agg.PC,cols = c("Prop.Dam", "Crop.Dam"), 
 			     names_to = "Damage.Type", values_to = "Damage.Cost")
 
@@ -150,7 +165,7 @@ SD.Agg.byDam$Damage.Type <- factor(SD.Agg.byDam$Damage.Type,
 
 
 
-
+#	Plot stacked bar plot showing Casualties (stacking deaths and injuries) by Event Type.
 k <- ggplot(SD.Agg.byCas, aes(x = reorder(Event, -Casualties, sum), y = Casualties, fill = Casualty.Type))+
 	geom_bar(stat = "identity")+
 	xlab("Weather Event")+
@@ -172,6 +187,8 @@ k <- ggplot(SD.Agg.byCas, aes(x = reorder(Event, -Casualties, sum), y = Casualti
 
 k
 
+
+#	Plot stacked bar plot showing Total Damage (stacking property and crop damage) by Event Type.
 l <- ggplot(SD.Agg.byDam, aes(x = reorder(Event, -Damage.Cost, sum), y = Damage.Cost, fill = Damage.Type))+
 	geom_bar(stat = "identity")+
 	xlab("Weather Event")+
@@ -194,36 +211,93 @@ l
 
 
 
-
-
-
+#	Aggregate all variables measuring impact by State. Rename variables. 
+#	Scale from trillions to billions
 SD.State <- aggregate(cbind(SD$Deaths, SD$Injuries,SD$Casualties,
 			    SD$Prop.Dam.Cost, SD$Crop.Dam.Cost, 
 			    SD$Dam.Cost)~SD$State, FUN = sum)
-names(SD.State) <- c("State", "Deaths", "Injuries", "Property.Damage",
-		     "Crop.Damage", "Total.Damage")
 
-m <- ggplot(SD.State, aes(x = reorder(Event, -Damage.Cost, sum), y = Damage.Cost, fill = Damage.Type))+
+names(SD.State) <- c("State", "Deaths", "Injuries","Casualties", "Property.Damage",
+		     "Crop.Damage", "Total.Damage")
+SD.State$Total.Damage <- SD.State$Total.Damage * 1e3
+SD.State$Property.Damage <- SD.State$Property.Damage * 1e3
+SD.State$Crop.Damage <- SD.State$Crop.Damage * 1e3
+
+
+
+#	Tidy the data by combining the four impact variables into one and making that 
+#	new variable a factor.  Also add a variable classifying the type of impact.
+SD.State.combined <- pivot_longer(data = SD.State, cols = c("Deaths","Injuries", "Property.Damage", "Crop.Damage"),
+				  names_to = "Type", values_to = "Impact")
+SD.State.combined$Type <- factor(SD.State.combined$Type, 
+				       levels = c("Injuries", "Deaths","Crop.Damage", "Property.Damage"))
+SD.State.combined$Facet <- ifelse(SD.State.combined$Type == "Deaths" | SD.State.combined$Type == "Injuries", "Personal", "Economic")
+
+
+#	Split by type of impact.  Find 10 highest impacts in each type and then
+#	recombine the split datasets.
+SD.Personal <- SD.State.combined[SD.State.combined$Facet == "Personal",]
+SD.Economic <- SD.State.combined[SD.State.combined$Facet == "Economic",]
+
+SD.Personal.T10 <- slice_max(.data = SD.Personal, order_by = Casualties, n = 20)
+SD.Economic.T10 <- slice_max(.data = SD.Economic, order_by = Total.Damage, n = 20)
+
+SD.State.combined.Top10 <- rbind(SD.Personal.T10, SD.Economic.T10)
+
+
+#	Plot a bar plot showing 10 most impacted states by both Economic and Personal Health
+n <- ggplot(data = SD.State.combined.Top10, aes(x = reorder_within(State,-Impact,Facet), y = Impact, fill = Type))+
 	geom_bar(stat = "identity")+
-	xlab("Weather Event")+
-	ylab("Damages (trillions of dollars)")+
+	facet_wrap(~Facet, scales = "free", labeller = as_labeller(
+		c(Economic = "Economic Damage (billions of dollars)", Personal = "Casualties")))+
+	xlab("State")+
 	theme(plot.title = element_text(hjust = 0.5) , 
-	      axis.text.x = element_text(angle = 45, 
-	      			   vjust = 1, hjust = 1, size = 11), legend.position = "bottom", 
+	      axis.text.x = element_text(angle = 0, 
+	      			   vjust = 1, hjust = 0.5, size = 11), legend.position = "bottom", 
 	      legend.title = element_blank(),
 	      axis.ticks.length.x = unit(0.5, "cm"))+
-	ylim(0, 50)+
-	labs(title = "Economic Impact by Weather Event")+
-	scale_x_discrete(labels = c("Floods\nDebris Flow", "Tornado", "Hail",
-				    "Hurricane",  "Heat", "Thunder\nLightning",
-				    "Ice\nSnow", "Cold\nWind",
-				    "Wildfire", "Tropical \n Storms"))+
-	stat_summary(fun = sum, aes(label = dollar(round(after_stat(y), 2)), group = Event), 
-		     geom = "text", vjust = -0.5)
+	labs(title = "Economic and Personal Health Damage by State")+
+	scale_x_discrete(labels = function(x) gsub("__Economic|__Personal|___Economic|___Personal","",x))
 
-m
+n
 
 
+# SD.State.combined.Top10 <- SD.State.combined %>%
+# 				group_by(Facet) %>%
+# 				slice_max(order_by = Impact, n = 10) %>%
+# 				ungroup()
+
+
+
+# m <- ggplot(data = SD.State.combined.Top10, aes(x = reorder_within(State,-Impact,Facet), y = Impact, fill = Type))+
+# 	geom_bar(stat = "identity")+
+# 	facet_wrap(~Facet, scales = "free", strip.position = "left", labeller = as_labeller(
+# 		c(Economic = "Damages (billions of dollars)", Personal = "Casualties")),
+# 		strip.position = "top", labeller = as_labeller(c(Economic = "Economic", Personal = "Personal")))+
+# 	xlab("State")+
+# 	#ylab("Damages (billions of dollars)")+
+# 	theme(plot.title = element_text(hjust = 0.5) , 
+# 	      axis.text.x = element_text(angle = 0, 
+# 	      			   vjust = 1, hjust = 0.5, size = 11), legend.position = "bottom", 
+# 	      legend.title = element_blank(),
+# 	      axis.ticks.length.x = unit(0.5, "cm"))+
+# 	labs(title = "Economic and Personal Health Damage by State")+
+# 	scale_x_discrete(labels = function(x) gsub("__Economic|__Personal|___Economic|___Personal","",x))
+# 	
+# m
+
+
+# SD.State.byCas <- pivot_longer(data = SD.State,cols = c("Deaths", "Injuries"), 
+# 			       names_to = "Casualty.Type", values_to = "Cas")
+# 
+# SD.State.byCas$Casualty.Type <- factor(SD.State.byCas$Casualty.Type, 
+# 				     levels = c("Injuries", "Deaths"))
+# 
+# SD.State.byCas.byDam <- pivot_longer(data = SD.State.byCas,cols = c("Property.Damage", "Crop.Damage"), 
+# 			     names_to = "Damage.Type", values_to = "Damage.Cost")
+# 
+# SD.State.byCas.byDam$Damage.Type <- factor(SD.State.byCas.byDam$Damage.Type, 
+# 				   levels = c("Property.Damage", "Crop.Damage"))
 
 # 
 # thunder_lightning_var <- unique(Event.Names[grepl(".*THUN.*|.*LIGHTNING.*|.*TSTM.*|.*LIGNTNING.*|
@@ -244,7 +318,7 @@ m
 # other_var <- unique(Event.Names[grepl(".*OTHER.*|.*\\?.*|.*APACHE.*|.*ACCIDENT.*|.*URBAN.*|.*MISHAP.*", Event.Names )])
 # marine_seas_var <- unique(Event.Names[grepl(".*SEA.*|.*SWELL.*|.*STORM SURGE.*", Event.Names )])
 
-
+#A <- unique(SD$Event.Type[grepl("LIGHTNING|THUNDER|TSTM", SD$Event.Type )])
 
 # f <- ggplot(SD.Agg.Cas, aes(x = reorder(Event, -Casualties), y = Casualties, fill = "red"))+
 # 	geom_bar(stat = "identity")+
