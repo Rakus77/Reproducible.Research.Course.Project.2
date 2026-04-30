@@ -5,19 +5,27 @@ date: "2026-04-29"
 output: html_document
 ---
 ## Synopsis
-
-The goal of this analysis is to find the weather events that create the most damage, both economically and 
-to personal health.  The data used in this analysis is strictly taken from the NOAA Storm Database.  
-
+The goal of this analysis is to find the weather events that create the most amount of damage, both economically and to personal health.<br>  We will attempt to answer two questions directly.  They are 
+<br>
+<br>
+1. Across the United States, which types of events (as indicated by the `EVTYPE` variable) are most harmful with respect to population health? <br>
+2. Across the United States, which types of events have the greatest economic consequences?
+<br>
+<br>
+To accomplish this we look at data containing information regarding amounts of varying types of damage and the weather that caused the damages.  The [data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2) used in this analysis is taken from the NOAA Storm Database.  This data was not altered before the following process.  
+   
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, fig.width = 10, 
 		      fig.height = 5, fig.keep = 'all', fig.path = "./figure/",
 		      dev = 'png')
+
 ```
+
+<br>
+<br>
 
 #### Loading libraries
 
-Setting the knitr options and attaching the libraries we will need. 
 
 ```{r, warning=FALSE, message=FALSE, cache = TRUE}
 install_load <- function(pkgs) {
@@ -39,9 +47,12 @@ install_load(c("tidyverse", "scales","tidytext"))
 <br>
 <br>
 
-#### Loading and preprocessing the data
+#### Data Processing
+<br>
+We begin by reading in the data using `fread` from the `data.table` package.  We select nine columns to read to avoid bringing in any extra data.  These columns contain the dates of the events, the state where the event occurred, the events themselves, and then six columns that all concern the impacts.  We also remove data for years 1992 and prior as the number of records increases dramatically after this, likely indicating improved processes with regards to collecting data.  
+<br>
 
-```{r, warning=FALSE, message=FALSE, cache = TRUE}
+```{r, warning=FALSE, message=FALSE, cache = TRUE, options = 2000}
 #	Read in dataset, select columns to read, and rename variables.
 StormDataOriginal <- data.table::fread("repdata_data_StormData.csv.bz2", 
 				       select = c(2,7,8,23,24,25,26,27,28))
@@ -59,10 +70,12 @@ StormData$Date <- as.Date(StormData$Date, format = "%m/%d/%Y")
 StormData$Year <- with(StormData, format(Date, "%Y"))
 StormData$Year <- as.numeric(StormData$Year)
 StormData <- StormData[StormData$Year >= 1993]             
-
 ```
-
+```{r, warning=FALSE, message=FALSE, cache = TRUE, options = 2000}
+summary(StormData)
+```
 <br>
+Next, we transform the data.  The values for the amount of damage (in dollars) for both property damage and damage to crops are stored across two variables each.  One contains information on the exponent or magnitude of the damages.  Another contains the coefficient of the damages.  If we combine them, through multiplication, we get the amount of damage, to property or to crops.  
 <br>
 
 
@@ -110,10 +123,10 @@ StormData <- subset(StormData,
 
 ```
 
-  
-
+We also converted damages to trillions of dollars and removed any extra columns that are a result of the transformations.  
 <br>
-
+<br>
+There are 985 unique entries in row containing all of the events.  Many of them are redundant or abbreviations of same event or misspellings of the same event.  First we will subset the data so there are no rows with all zeros in the impact columns.  That is to say only rows where there is at least one death or injury, or some monetary damage recorded for either property or crops greater than zero.  The rest of the steps are taken to combine and reduce the number of different events.  
 
 ```{r, warning=FALSE, message=FALSE, cache = TRUE}
 #	Subset only rows with some form of impact.  If any of the impact variables
@@ -122,8 +135,6 @@ SD <- StormData[!rowSums(StormData[, c(4,5,7,8)]) == 0,]
 
 #	Make all Events uppercase to avoid distinction by case.
 SD$Event.Type <- toupper(SD$Event.Type)
-
-
 
 #	Group all Events by meaning to reduce buckets and fix misspellings. 
 SD$Event.Type <- gsub(".*THUN.*|.*LIGHTNING.*|.*TSTM.*|.*LIGNTNING.*|.*LIGHTING.*|.*MICRO.*|.*DOWNBURST.*|.*TURBULENCE.*"
@@ -153,7 +164,7 @@ SD$Event.Type <- gsub(".*AVALAN.*", "AVALANCHE", SD$Event.Type)
 
 
 <br>
-
+We now `sum` the deaths and injuries by the type of weather event.  We also `sum` the damages to property and crops by the type of weather event.  Then we take the top ten events in damages and casualties.
 
 ```{r, warning=FALSE, message=FALSE, cache = TRUE}
 #	Combine Deaths and Injuries to one variable called Casualties
@@ -179,7 +190,9 @@ SD.Agg.PC$Dam.Cost <- SD.Agg.PC$Crop.Dam + SD.Agg.PC$Prop.Dam
 SD.Agg.PC <- slice_max(.data = SD.Agg.PC, order_by = SD.Agg.PC$Dam.Cost, n = 10)
 
 ```
+<br>
 
+Next, we tidy the data.  We make the dataset longer but reduce its width by collapse two variables into one.  This will allow us to plot totals for damages and casualties but also show the components.
 
 ```{r, warning=FALSE, message=FALSE, cache = TRUE}
 #	Tidy the data by taking the two variables Deaths and Injuries and combining 
@@ -203,6 +216,9 @@ SD.Agg.byDam$Damage.Type <- factor(SD.Agg.byDam$Damage.Type,
 <br>
 <br>
 
+#### Results
+<br>
+Now we are ready to plot the impacts by event.  First we will plot Casualties by event.
 ```{r, warning=FALSE, message=FALSE, cache = TRUE}
 #	Plot stacked bar plot showing Casualties (stacking deaths and injuries) by Event Type.
 k <- ggplot(SD.Agg.byCas, aes(x = reorder(Event, -Casualties, sum), y = Casualties, fill = Casualty.Type))+
@@ -227,10 +243,10 @@ k <- ggplot(SD.Agg.byCas, aes(x = reorder(Event, -Casualties, sum), y = Casualti
 k
 
 ```
-
+Tornadoes are responsible for over 25,000 casualties.  Thunder and Lightning are the next closest with less than 13,000.  The event most harmful with respect to population health is a tornado. 
 <br>
 <br>
-
+Next we plot the damages by the event that caused the damages.  
 ```{r, warning=FALSE, message=FALSE, cache = TRUE}
 #	Plot stacked bar plot showing Total Damage (stacking property and crop damage) by Event Type.
 l <- ggplot(SD.Agg.byDam, aes(x = reorder(Event, -Damage.Cost, sum), y = Damage.Cost, fill = Damage.Type))+
@@ -254,10 +270,14 @@ l <- ggplot(SD.Agg.byDam, aes(x = reorder(Event, -Damage.Cost, sum), y = Damage.
 l
 
 ```
-
+Floods (and flood-like weather) are the most economically consequential events in the United States.  They have caused almost 44 trillion dollars in damage from 1993 to 2011 accounting for around 30% of all damages.  
 
 <br>
+<br>
 
+#### Additional Insights
+<br>
+We have now answered the questions set forth at the beginning of this analysis.  Beyond this, we will look at the impacts of these weather events after grouping them by the state they happened in.  
 ```{r, warning=FALSE, message=FALSE, cache = TRUE}
 
 #	Aggregate all variables measuring impact by State. Rename variables. 
@@ -273,8 +293,9 @@ SD.State$Property.Damage <- SD.State$Property.Damage * 1e3
 SD.State$Crop.Damage <- SD.State$Crop.Damage * 1e3
 
 ```
-
-
+<br>
+<br>
+Again we will take the aggregated data and "unpivot" it so that the impacts are collapsed to one variable.  This time we will take the states with the ten highest amounts of casualties and also damages.   
 
 ```{r, warning=FALSE, message=FALSE, cache = TRUE}
 
@@ -299,10 +320,11 @@ SD.State.combined.Top10 <- rbind(SD.Personal.T10, SD.Economic.T10)
 
 ```
 
+<br>
+<br>
 
 
-
-
+Now we can plot the ten most impacted states, both economically and with regards to health.
 ```{r, warning=FALSE, message=FALSE, cache = TRUE}
 
 #	Plot a bar plot showing 10 most impacted states by both Economic and Personal Health
@@ -322,7 +344,7 @@ n <- ggplot(data = SD.State.combined.Top10, aes(x = reorder_within(State,-Impact
 n
 
 ```
-
+Texas, Florida, California and Ohio are in the top ten for both economic damage and number of casualties.  Increased efforts to buttress protections against major weather events in these states would likely yield the greatest return.
 
 
 

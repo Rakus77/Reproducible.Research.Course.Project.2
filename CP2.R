@@ -262,6 +262,8 @@ n <- ggplot(data = SD.State.combined.Top10, aes(x = reorder_within(State,-Impact
 n
 
 
+summary(StormData)
+
 # SD.State.combined.Top10 <- SD.State.combined %>%
 # 				group_by(Facet) %>%
 # 				slice_max(order_by = Impact, n = 10) %>%
