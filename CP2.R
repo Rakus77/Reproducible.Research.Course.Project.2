@@ -38,6 +38,9 @@ StormData$Date <- as.Date(StormData$Date, format = "%m/%d/%Y")
 StormData$Year <- with(StormData, format(Date, "%Y"))
 StormData$Year <- as.numeric(StormData$Year)
 StormData <- StormData[StormData$Year >= 1993]
+SD2 <- StormData[StormData$Year >= 2000]
+
+length(unique(SD2$Event.Type))
 
 #	Create list of unique exponent values and corresponding numerical values.
 Dam.Exponent <- union(StormData$Prop.Dam.Exponent,StormData$Crop.Dam.Exponent)
